@@ -1,3 +1,16 @@
+/* room beside the chart for the settings panel, or below it once the panel is a sheet */
+@media (min-width: 1100px) {
+  .app[data-panel='open'] {
+    padding-right: 332px;
+  }
+}
+
+@media (max-width: 1099px) {
+  .app[data-panel='open'] {
+    padding-bottom: 55vh;
+  }
+}
+
 .demo {
   display: flex;
   flex-direction: column;
@@ -26,7 +39,7 @@
   color: var(--text-muted);
 }
 
-.shuffle-btn {
+.head-btn {
   flex-shrink: 0;
   height: 40px;
   padding: 0 20px;
@@ -38,11 +51,11 @@
   transition: background 0.15s;
 }
 
-.shuffle-btn:hover {
+.head-btn:hover {
   background: var(--accent-hover);
 }
 
-.shuffle-btn:focus-visible {
+.head-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

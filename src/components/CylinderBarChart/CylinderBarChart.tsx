@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react'
+import { Fragment, useId, useState, type CSSProperties } from 'react'
 import {
   Bar,
   BarChart,
@@ -8,6 +8,7 @@ import {
   type BarShapeProps,
   type TooltipContentProps,
 } from 'recharts'
+import { DEFAULT_CONFIG, type CylinderConfig } from './cylinderConfig'
 import './CylinderBarChart.css'
 
 export type CylinderSeries = {
@@ -26,17 +27,12 @@ type CylinderBarChartProps = {
   xKey: string
   // bottom of the stack first
   series: CylinderSeries[]
-  height?: number
   // the heading of a bar's tooltip; defaults to its xKey value
   tooltipTitle?: (row: CylinderRow) => string
   formatValue?: (value: number) => string
-  // gap between bars, as a share of each bar's slot
-  barGap?: string
+  // how the chart looks; anything left out comes from DEFAULT_CONFIG
+  config?: Partial<CylinderConfig>
 }
-
-// how tall the cylinder's ellipses are, against the bar's width, and at most
-const ELLIPSE = 0.22
-const MAX_ELLIPSE = 10
 
 // While a bar is hovered the others go grey, banded light and dark so their layers
 // still read; the hovered bar keeps its colours.
@@ -59,6 +55,8 @@ type LayerLook = {
   greyGradientId: string
   lid: string
   greyLid: string
+  tilt: number
+  lidCap: number
   // the bar's total across every series
   rowTotal: (row: CylinderRow) => number
   // whether this bar is greyed out, because another one is hovered
@@ -75,7 +73,7 @@ function cylinderLayer(look: LayerLook) {
   return function CylinderLayer({ x, y, width, height, value, payload, index }: BarShapeProps) {
     if (!height || height <= 0) return <g />
     const rx = width / 2
-    const ry = Math.min(width * ELLIPSE, MAX_ELLIPSE)
+    const ry = Math.min(width * look.tilt, look.lidCap)
     const top = y - ry
     const bottom = y + height - ry
     // stacked bars get [start, end] of their layer
@@ -132,11 +130,11 @@ export function CylinderBarChart({
   data,
   xKey,
   series,
-  height = 260,
   tooltipTitle,
   formatValue = defaultFormat,
-  barGap = '22%',
+  config: overrides,
 }: CylinderBarChartProps) {
+  const config = { ...DEFAULT_CONFIG, ...overrides }
   // the bar under the pointer; the others go grey
   const [active, setActive] = useState<number | null>(null)
   // useId's punctuation isn't safe inside url(#…)
@@ -145,16 +143,26 @@ export function CylinderBarChart({
 
   const rowTotal = (row: CylinderRow) => series.reduce((sum, s) => sum + Number(row[s.key] ?? 0), 0)
   const greyOf = (i: number) => GREYS[i % GREYS.length]
+  // the grey lid sits a touch lighter than the coloured one, as the greys start lighter
+  const greyLid = Math.min(config.lid + 0.05, 1)
+
+  const shading = (color: string) => (
+    <>
+      <stop offset="0%" stopColor={tint(color, config.depth)} />
+      <stop offset={`${config.highlight}%`} stopColor={color} />
+      <stop offset="100%" stopColor={tint(color, -config.depth)} />
+    </>
+  )
 
   return (
-    <div className="cbc" style={{ height }}>
+    <div className="cbc" style={{ height: config.height, '--cbc-fade': `${config.fade}s` } as CSSProperties}>
       <ResponsiveContainer width="100%" height="100%">
         {/* recharts stacks layers in the order they first mounted, so remount when the series change */}
         <BarChart
           key={series.map((s) => s.key).join('|')}
           data={data}
-          margin={{ top: MAX_ELLIPSE * 2 + 4, right: 0, bottom: 0, left: 0 }}
-          barCategoryGap={barGap}
+          margin={{ top: config.lidCap * 2 + 4, right: 0, bottom: 0, left: 0 }}
+          barCategoryGap={`${config.gap}%`}
           onMouseMove={(state) => setActive(state.activeTooltipIndex == null ? null : Number(state.activeTooltipIndex))}
           onMouseLeave={() => setActive(null)}
         >
@@ -163,20 +171,17 @@ export function CylinderBarChart({
             {series.map((s, i) => (
               <Fragment key={s.key}>
                 <linearGradient id={gradientId(i)} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={tint(s.color, 0.25)} />
-                  <stop offset="45%" stopColor={s.color} />
-                  <stop offset="100%" stopColor={tint(s.color, -0.25)} />
+                  {shading(s.color)}
                 </linearGradient>
                 <linearGradient id={`${gradientId(i)}-grey`} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={tint(greyOf(i), 0.25)} />
-                  <stop offset="45%" stopColor={greyOf(i)} />
-                  <stop offset="100%" stopColor={tint(greyOf(i), -0.25)} />
+                  {shading(greyOf(i))}
                 </linearGradient>
               </Fragment>
             ))}
           </defs>
           <XAxis
             dataKey={xKey}
+            hide={!config.axisLabels}
             tickLine={false}
             axisLine={false}
             tick={{ fill: MUTED, fontSize: 12 }}
@@ -186,11 +191,15 @@ export function CylinderBarChart({
           />
           <Tooltip
             content={
-              <ChartTooltip
-                title={tooltipTitle ?? ((row) => String(row[xKey]))}
-                total={rowTotal}
-                formatValue={formatValue}
-              />
+              config.tooltip ? (
+                <ChartTooltip
+                  title={tooltipTitle ?? ((row) => String(row[xKey]))}
+                  total={rowTotal}
+                  formatValue={formatValue}
+                />
+              ) : (
+                () => null
+              )
             }
             cursor={false}
           />
@@ -204,10 +213,12 @@ export function CylinderBarChart({
               shape={cylinderLayer({
                 gradientId: gradientId(i),
                 greyGradientId: `${gradientId(i)}-grey`,
-                lid: tint(s.color, 0.4),
-                greyLid: tint(greyOf(i), 0.45),
+                lid: tint(s.color, config.lid),
+                greyLid: tint(greyOf(i), greyLid),
+                tilt: config.tilt,
+                lidCap: config.lidCap,
                 rowTotal,
-                isDimmed: (index) => active !== null && index !== active,
+                isDimmed: (index) => config.greyOut && active !== null && index !== active,
               })}
             />
           ))}

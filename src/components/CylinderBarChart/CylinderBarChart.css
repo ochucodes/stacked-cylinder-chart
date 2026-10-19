@@ -7,7 +7,7 @@
 /* the grey copy of each layer, faded in while another bar is hovered */
 .cbc-dim {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--cbc-fade, 0.2s) ease;
 }
 
 .cbc-dim.is-on {

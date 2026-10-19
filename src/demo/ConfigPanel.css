@@ -1,0 +1,329 @@
+/* A dark panel floating over the top right of the page, whatever the page's theme */
+.cfg {
+  --cfg-bg: #19191b;
+  --cfg-row: #252528;
+  --cfg-row-hover: #2c2c30;
+  --cfg-fill: #38383d;
+  --cfg-fill-hover: #424248;
+  --cfg-line: #2e2e32;
+  --cfg-text: #ececee;
+  --cfg-muted: #9a9aa2;
+  --cfg-focus: #7b93ff;
+
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  max-height: calc(100vh - 32px);
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 14px;
+  background: var(--cfg-bg);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: var(--cfg-text);
+  color-scheme: dark;
+}
+
+/* a sheet along the bottom once there's no room beside the chart */
+@media (max-width: 1099px) {
+  .cfg {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-width: 480px;
+    max-height: 55vh;
+    margin: 0 auto;
+    border-radius: 14px 14px 0 0;
+  }
+}
+
+.cfg button:focus-visible,
+.cfg select:focus-visible,
+.cfg-row:has(input:focus-visible) {
+  outline: 2px solid var(--cfg-focus);
+  outline-offset: 1px;
+}
+
+.cfg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cfg-head h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* reset and close, top right */
+.cfg-head-actions {
+  display: flex;
+  gap: 2px;
+  margin-right: -6px;
+}
+
+.cfg-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--cfg-muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.cfg-icon-btn:hover {
+  background: var(--cfg-row);
+  color: var(--cfg-text);
+}
+
+/* the preset picker and the copy button */
+.cfg-top {
+  display: flex;
+  gap: 8px;
+}
+
+.cfg-select {
+  position: relative;
+  flex: 1;
+}
+
+.cfg-select select {
+  width: 100%;
+  height: 36px;
+  padding: 0 32px 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--cfg-row);
+  font: inherit;
+  color: var(--cfg-text);
+  appearance: none;
+  cursor: pointer;
+}
+
+.cfg-select svg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: var(--cfg-muted);
+  pointer-events: none;
+}
+
+.cfg-copy {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cfg-text);
+  color: var(--cfg-bg);
+  transition: background 0.15s;
+}
+
+.cfg-copy:hover {
+  background: #fff;
+}
+
+.cfg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cfg-group[hidden] {
+  display: none;
+}
+
+.cfg-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--cfg-line);
+}
+
+.cfg-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  border-radius: 4px;
+  font-weight: 500;
+  color: var(--cfg-text);
+}
+
+.cfg-section-head svg {
+  color: var(--cfg-muted);
+  transition: transform 0.2s ease;
+}
+
+.cfg-section-head[aria-expanded='false'] svg {
+  transform: rotate(180deg);
+}
+
+/* ---------- Rows: label on the left, value on the right ---------- */
+.cfg-row {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--cfg-row);
+}
+
+.cfg-label {
+  color: var(--cfg-text);
+}
+
+.cfg-value {
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--cfg-text);
+}
+
+/* the fill sits behind the text; the range input sits over everything, unseen */
+.cfg-slider .cfg-label,
+.cfg-slider .cfg-value {
+  position: relative;
+  pointer-events: none;
+}
+
+.cfg-slider-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--cfg-fill);
+  transition: background 0.15s;
+}
+
+.cfg-slider:hover .cfg-slider-fill {
+  background: var(--cfg-fill-hover);
+}
+
+.cfg-slider input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  appearance: none;
+  cursor: ew-resize;
+}
+
+/* a hairline thumb, so a click lands on the value right under the pointer */
+.cfg-slider input::-webkit-slider-thumb {
+  width: 1px;
+  height: 36px;
+  appearance: none;
+}
+
+.cfg-slider input::-moz-range-thumb {
+  width: 1px;
+  height: 36px;
+  border: 0;
+}
+
+.cfg-toggle {
+  padding-right: 4px;
+}
+
+.cfg-choice {
+  display: flex;
+  gap: 2px;
+}
+
+.cfg-choice button {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--cfg-muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.cfg-choice button:hover {
+  color: var(--cfg-text);
+}
+
+.cfg-choice button.is-active {
+  background: var(--cfg-fill);
+  color: var(--cfg-text);
+}
+
+.cfg-color {
+  cursor: pointer;
+}
+
+.cfg-color:hover {
+  background: var(--cfg-row-hover);
+}
+
+.cfg-color input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.cfg-color input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.cfg-color input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}
+
+.cfg-color input::-moz-color-swatch {
+  border: 0;
+  border-radius: 4px;
+}
+
+.cfg-button {
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cfg-row);
+  color: var(--cfg-muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.cfg-button:hover {
+  background: var(--cfg-row-hover);
+  color: var(--cfg-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg *,
+  .cfg-section-head svg {
+    transition: none;
+  }
+}
